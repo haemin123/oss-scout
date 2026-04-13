@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "oss-scout": {
+      "command": "python",
+      "args": ["-m", "server.main"],
+      "env": {
+        "GITHUB_TOKEN": "your-github-token-here"
+      }
+    }
+  }
+}

@@ -1,0 +1,24 @@
+# OSS Scout License Policy
+# Used by server/core/license_check.py for license classification
+
+whitelist:
+  - MIT
+  - Apache-2.0
+  - BSD-2-Clause
+  - BSD-3-Clause
+  - ISC
+  - Unlicense
+  - 0BSD
+
+warn:
+  - GPL-3.0
+  - GPL-2.0
+  - LGPL-3.0
+  - LGPL-2.1
+  - AGPL-3.0
+  - MPL-2.0
+
+block:
+  - null          # No license detected
+  - NOASSERTION   # License declared but unrecognizable
+  - other         # Custom or unclear license

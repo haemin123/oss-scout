@@ -1,0 +1,1 @@
+"""OSS Scout MCP Server."""
