@@ -1,0 +1,66 @@
+# OSS Scout Preset Recipes
+# Pre-defined OSS combinations for common project types.
+# Used by server/tools/recipe.py
+
+recipes:
+  nextjs-saas:
+    name: "Next.js SaaS 스타터"
+    description: "인증 + 결제 + 대시보드가 포함된 SaaS 보일러플레이트"
+    base_repo: "https://github.com/mickasmt/next-saas-stripe-starter"
+    tech_stack: ["Next.js", "TypeScript", "Stripe", "Prisma"]
+    env_required: ["STRIPE_SECRET_KEY", "DATABASE_URL", "NEXTAUTH_SECRET"]
+    tags: ["saas", "stripe", "auth", "dashboard"]
+
+  ai-chatbot:
+    name: "AI 챗봇"
+    description: "LLM 기반 대화형 챗봇 인터페이스"
+    base_repo: "https://github.com/vercel/ai-chatbot"
+    tech_stack: ["Next.js", "TypeScript", "AI SDK"]
+    env_required: ["OPENAI_API_KEY"]
+    tags: ["ai", "chatbot", "llm", "streaming"]
+
+  dashboard-admin:
+    name: "관리자 대시보드"
+    description: "데이터 시각화 + CRUD가 포함된 관리자 패널"
+    base_repo: "https://github.com/shadcn-ui/taxonomy"
+    tech_stack: ["Next.js", "TypeScript", "shadcn/ui", "Tailwind"]
+    env_required: ["DATABASE_URL"]
+    tags: ["dashboard", "admin", "crud", "charts"]
+
+  landing-page:
+    name: "랜딩 페이지"
+    description: "반응형 마케팅 랜딩 페이지"
+    base_repo: "https://github.com/shadcn-ui/taxonomy"
+    keep_only: ["src/components/ui/**", "src/styles/**", "src/app/page.tsx"]
+    tech_stack: ["Next.js", "Tailwind", "shadcn/ui"]
+    tags: ["landing", "marketing", "responsive"]
+
+  ecommerce:
+    name: "이커머스 쇼핑몰"
+    description: "상품 관리 + 결제가 포함된 쇼핑몰"
+    base_repo: "https://github.com/medusajs/nextjs-starter-medusa"
+    tech_stack: ["Next.js", "Medusa.js", "Stripe"]
+    env_required: ["MEDUSA_BACKEND_URL", "STRIPE_KEY"]
+    tags: ["ecommerce", "shop", "store", "payments"]
+
+  api-server:
+    name: "API 서버 (FastAPI)"
+    description: "Python FastAPI 기반 REST API 서버"
+    base_repo: "https://github.com/tiangolo/full-stack-fastapi-template"
+    tech_stack: ["Python", "FastAPI", "PostgreSQL", "Docker"]
+    env_required: ["DATABASE_URL", "SECRET_KEY"]
+    tags: ["api", "backend", "python", "fastapi"]
+
+  cli-tool:
+    name: "CLI 도구 (Python)"
+    description: "Python Click 기반 커맨드라인 도구"
+    base_repo: "https://github.com/tiangolo/typer"
+    tech_stack: ["Python", "Typer"]
+    tags: ["cli", "command-line", "python"]
+
+  mobile-app:
+    name: "모바일 앱 (React Native)"
+    description: "크로스플랫폼 모바일 앱"
+    base_repo: "https://github.com/infinitered/ignite"
+    tech_stack: ["React Native", "TypeScript", "MobX"]
+    tags: ["mobile", "react-native", "ios", "android"]
