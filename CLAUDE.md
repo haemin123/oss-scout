@@ -31,7 +31,8 @@ oss-scout/
 │   │   ├── explain.py       # explain_repo
 │   │   ├── scaffold.py      # scaffold
 │   │   ├── license.py       # check_license
-│   │   └── validate.py      # validate_repo (sub-agent orchestration)
+│   │   ├── validate.py      # validate_repo (sub-agent orchestration)
+│   │   └── batch.py         # batch_search, batch_validate, batch_scaffold (parallel)
 │   ├── agents/              # Rule-based sub-agents
 │   │   ├── base.py          # BaseAgent, AgentResult
 │   │   ├── license_agent.py # License cross-validation

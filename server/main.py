@@ -27,6 +27,14 @@ from mcp.types import (
 )
 
 from server.core.github_client import GitHubClient, parse_repo_url
+from server.tools.batch import (
+    BATCH_SCAFFOLD_TOOL,
+    BATCH_SEARCH_TOOL,
+    BATCH_VALIDATE_TOOL,
+    handle_batch_scaffold,
+    handle_batch_search,
+    handle_batch_validate,
+)
 from server.tools.explain import EXPLAIN_TOOL, handle_explain
 from server.tools.license import LICENSE_TOOL, handle_license
 from server.tools.scaffold import SCAFFOLD_TOOL, handle_scaffold
@@ -96,6 +104,9 @@ async def list_tools() -> list[Tool]:
         VALIDATE_TOOL,
         EXPLAIN_TOOL,
         SCAFFOLD_TOOL,
+        BATCH_SEARCH_TOOL,
+        BATCH_VALIDATE_TOOL,
+        BATCH_SCAFFOLD_TOOL,
     ]
 
 
@@ -188,6 +199,42 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
             _log("error", "scaffold_failed", error=str(e)[:200])
             return [TextContent(type="text", text=json.dumps(
                 {"error": "스캐폴딩 중 오류가 발생했습니다."},
+                ensure_ascii=False,
+            ))]
+
+    if name == "batch_search":
+        _log("info", "tool_called", tool="batch_search")
+        try:
+            github = _get_github_client()
+            return await handle_batch_search(arguments, github)
+        except Exception as e:
+            _log("error", "batch_search_failed", error=str(e)[:200])
+            return [TextContent(type="text", text=json.dumps(
+                {"error": "배치 검색 중 오류가 발생했습니다."},
+                ensure_ascii=False,
+            ))]
+
+    if name == "batch_validate":
+        _log("info", "tool_called", tool="batch_validate")
+        try:
+            github = _get_github_client()
+            return await handle_batch_validate(arguments, github)
+        except Exception as e:
+            _log("error", "batch_validate_failed", error=str(e)[:200])
+            return [TextContent(type="text", text=json.dumps(
+                {"error": "배치 검증 중 오류가 발생했습니다."},
+                ensure_ascii=False,
+            ))]
+
+    if name == "batch_scaffold":
+        _log("info", "tool_called", tool="batch_scaffold")
+        try:
+            github = _get_github_client()
+            return await handle_batch_scaffold(arguments, github)
+        except Exception as e:
+            _log("error", "batch_scaffold_failed", error=str(e)[:200])
+            return [TextContent(type="text", text=json.dumps(
+                {"error": "배치 스캐폴딩 중 오류가 발생했습니다."},
                 ensure_ascii=False,
             ))]
 
