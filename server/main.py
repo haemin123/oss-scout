@@ -35,12 +35,18 @@ from server.tools.batch import (
     handle_batch_search,
     handle_batch_validate,
 )
+from server.tools.adapt_stack import ADAPT_STACK_TOOL, handle_adapt_stack
 from server.tools.envcheck import ENVCHECK_TOOL, handle_envcheck
 from server.tools.explain import EXPLAIN_TOOL, handle_explain
+from server.tools.extract_component import (
+    EXTRACT_COMPONENT_TOOL,
+    handle_extract_component,
+)
 from server.tools.integration_check import (
     VALIDATE_INTEGRATION_TOOL,
     handle_validate_integration,
 )
+from server.tools.merge_repos import MERGE_REPOS_TOOL, handle_merge_repos
 from server.tools.preview import PREVIEW_TOOL, handle_preview
 from server.tools.license import LICENSE_TOOL, handle_license
 from server.tools.recipe import RECIPE_TOOL, handle_recipe
@@ -120,6 +126,9 @@ async def list_tools() -> list[Tool]:
         SMART_SCAFFOLD_TOOL,
         RECIPE_TOOL,
         VALIDATE_INTEGRATION_TOOL,
+        EXTRACT_COMPONENT_TOOL,
+        ADAPT_STACK_TOOL,
+        MERGE_REPOS_TOOL,
     ]
 
 
@@ -326,6 +335,53 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
             _log("error", "validate_integration_failed", error=str(e)[:200])
             return [TextContent(type="text", text=json.dumps(
                 {"error": "통합 검증 중 오류가 발생했습니다."},
+                ensure_ascii=False,
+            ))]
+
+    if name == "extract_component":
+        _log("info", "tool_called", tool="extract_component")
+        try:
+            github = _get_github_client()
+            return await handle_extract_component(arguments, github)
+        except ValueError as e:
+            return [TextContent(type="text", text=json.dumps(
+                {"error": str(e)}, ensure_ascii=False,
+            ))]
+        except Exception as e:
+            _log("error", "extract_component_failed", error=str(e)[:200])
+            return [TextContent(type="text", text=json.dumps(
+                {"error": "컴포넌트 추출 중 오류가 발생했습니다."},
+                ensure_ascii=False,
+            ))]
+
+    if name == "adapt_stack":
+        _log("info", "tool_called", tool="adapt_stack")
+        try:
+            return await handle_adapt_stack(arguments)
+        except ValueError as e:
+            return [TextContent(type="text", text=json.dumps(
+                {"error": str(e)}, ensure_ascii=False,
+            ))]
+        except Exception as e:
+            _log("error", "adapt_stack_failed", error=str(e)[:200])
+            return [TextContent(type="text", text=json.dumps(
+                {"error": "스택 변환 분석 중 오류가 발생했습니다."},
+                ensure_ascii=False,
+            ))]
+
+    if name == "merge_repos":
+        _log("info", "tool_called", tool="merge_repos")
+        try:
+            github = _get_github_client()
+            return await handle_merge_repos(arguments, github)
+        except ValueError as e:
+            return [TextContent(type="text", text=json.dumps(
+                {"error": str(e)}, ensure_ascii=False,
+            ))]
+        except Exception as e:
+            _log("error", "merge_repos_failed", error=str(e)[:200])
+            return [TextContent(type="text", text=json.dumps(
+                {"error": "레포 머지 중 오류가 발생했습니다."},
                 ensure_ascii=False,
             ))]
 
