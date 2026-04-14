@@ -37,10 +37,16 @@ from server.tools.batch import (
 )
 from server.tools.envcheck import ENVCHECK_TOOL, handle_envcheck
 from server.tools.explain import EXPLAIN_TOOL, handle_explain
+from server.tools.integration_check import (
+    VALIDATE_INTEGRATION_TOOL,
+    handle_validate_integration,
+)
 from server.tools.preview import PREVIEW_TOOL, handle_preview
 from server.tools.license import LICENSE_TOOL, handle_license
+from server.tools.recipe import RECIPE_TOOL, handle_recipe
 from server.tools.scaffold import SCAFFOLD_TOOL, handle_scaffold
 from server.tools.search import SEARCH_TOOL, handle_search
+from server.tools.smart_scaffold import SMART_SCAFFOLD_TOOL, handle_smart_scaffold
 from server.tools.validate import VALIDATE_TOOL, handle_validate
 
 load_dotenv()
@@ -111,6 +117,9 @@ async def list_tools() -> list[Tool]:
         BATCH_SCAFFOLD_TOOL,
         PREVIEW_TOOL,
         ENVCHECK_TOOL,
+        SMART_SCAFFOLD_TOOL,
+        RECIPE_TOOL,
+        VALIDATE_INTEGRATION_TOOL,
     ]
 
 
@@ -270,6 +279,53 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
             _log("error", "preview_failed", error=str(e)[:200])
             return [TextContent(type="text", text=json.dumps(
                 {"error": "프리뷰 감지 중 오류가 발생했습니다."},
+                ensure_ascii=False,
+            ))]
+
+    if name == "recipe":
+        _log("info", "tool_called", tool="recipe")
+        try:
+            github = _get_github_client()
+            return await handle_recipe(arguments, github)
+        except ValueError as e:
+            return [TextContent(type="text", text=json.dumps(
+                {"error": str(e)}, ensure_ascii=False,
+            ))]
+        except Exception as e:
+            _log("error", "recipe_failed", error=str(e)[:200])
+            return [TextContent(type="text", text=json.dumps(
+                {"error": "레시피 처리 중 오류가 발생했습니다."},
+                ensure_ascii=False,
+            ))]
+
+    if name == "smart_scaffold":
+        _log("info", "tool_called", tool="smart_scaffold")
+        try:
+            github = _get_github_client()
+            return await handle_smart_scaffold(arguments, github)
+        except ValueError as e:
+            return [TextContent(type="text", text=json.dumps(
+                {"error": str(e)}, ensure_ascii=False,
+            ))]
+        except Exception as e:
+            _log("error", "smart_scaffold_failed", error=str(e)[:200])
+            return [TextContent(type="text", text=json.dumps(
+                {"error": "스마트 스캐폴딩 중 오류가 발생했습니다."},
+                ensure_ascii=False,
+            ))]
+
+    if name == "validate_integration":
+        _log("info", "tool_called", tool="validate_integration")
+        try:
+            return await handle_validate_integration(arguments)
+        except ValueError as e:
+            return [TextContent(type="text", text=json.dumps(
+                {"error": str(e)}, ensure_ascii=False,
+            ))]
+        except Exception as e:
+            _log("error", "validate_integration_failed", error=str(e)[:200])
+            return [TextContent(type="text", text=json.dumps(
+                {"error": "통합 검증 중 오류가 발생했습니다."},
                 ensure_ascii=False,
             ))]
 
