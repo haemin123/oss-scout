@@ -54,6 +54,7 @@ from server.tools.scaffold import SCAFFOLD_TOOL, handle_scaffold
 from server.tools.search import SEARCH_TOOL, handle_search
 from server.tools.smart_scaffold import SMART_SCAFFOLD_TOOL, handle_smart_scaffold
 from server.tools.validate import VALIDATE_TOOL, handle_validate
+from server.tools.wiring import GENERATE_WIRING_TOOL, handle_generate_wiring
 
 load_dotenv()
 
@@ -129,6 +130,7 @@ async def list_tools() -> list[Tool]:
         EXTRACT_COMPONENT_TOOL,
         ADAPT_STACK_TOOL,
         MERGE_REPOS_TOOL,
+        GENERATE_WIRING_TOOL,
     ]
 
 
@@ -382,6 +384,21 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
             _log("error", "merge_repos_failed", error=str(e)[:200])
             return [TextContent(type="text", text=json.dumps(
                 {"error": "레포 머지 중 오류가 발생했습니다."},
+                ensure_ascii=False,
+            ))]
+
+    if name == "generate_wiring":
+        _log("info", "tool_called", tool="generate_wiring")
+        try:
+            return await handle_generate_wiring(arguments)
+        except ValueError as e:
+            return [TextContent(type="text", text=json.dumps(
+                {"error": str(e)}, ensure_ascii=False,
+            ))]
+        except Exception as e:
+            _log("error", "generate_wiring_failed", error=str(e)[:200])
+            return [TextContent(type="text", text=json.dumps(
+                {"error": "연결 코드 생성 중 오류가 발생했습니다."},
                 ensure_ascii=False,
             ))]
 
