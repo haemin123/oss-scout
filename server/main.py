@@ -36,6 +36,7 @@ from server.tools.batch import (
     handle_batch_validate,
 )
 from server.tools.explain import EXPLAIN_TOOL, handle_explain
+from server.tools.preview import PREVIEW_TOOL, handle_preview
 from server.tools.license import LICENSE_TOOL, handle_license
 from server.tools.scaffold import SCAFFOLD_TOOL, handle_scaffold
 from server.tools.search import SEARCH_TOOL, handle_search
@@ -107,6 +108,7 @@ async def list_tools() -> list[Tool]:
         BATCH_SEARCH_TOOL,
         BATCH_VALIDATE_TOOL,
         BATCH_SCAFFOLD_TOOL,
+        PREVIEW_TOOL,
     ]
 
 
@@ -235,6 +237,21 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
             _log("error", "batch_scaffold_failed", error=str(e)[:200])
             return [TextContent(type="text", text=json.dumps(
                 {"error": "배치 스캐폴딩 중 오류가 발생했습니다."},
+                ensure_ascii=False,
+            ))]
+
+    if name == "preview":
+        _log("info", "tool_called", tool="preview")
+        try:
+            return await handle_preview(arguments)
+        except ValueError as e:
+            return [TextContent(type="text", text=json.dumps(
+                {"error": str(e)}, ensure_ascii=False,
+            ))]
+        except Exception as e:
+            _log("error", "preview_failed", error=str(e)[:200])
+            return [TextContent(type="text", text=json.dumps(
+                {"error": "프리뷰 감지 중 오류가 발생했습니다."},
                 ensure_ascii=False,
             ))]
 
