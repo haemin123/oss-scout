@@ -36,6 +36,9 @@ class QualityScore(BaseModel):
     popularity_score: float = Field(ge=0, le=1)
     maturity_score: float = Field(ge=0, le=1)
     documentation_score: float = Field(ge=0, le=1)
+    stack_score: float = Field(ge=0, le=1, default=0.0)
+    functional_fit_score: float = Field(ge=0, le=1, default=0.0)
+    confidence: str = Field(default="high")
 
 
 class RepoInfo(BaseModel):
@@ -57,6 +60,10 @@ class RepoInfo(BaseModel):
     has_examples: bool = False
     has_license: bool = False
     readme_length: int = Field(ge=0, default=0)
+    confidence: str = Field(default="high")
+    file_tree: list[str] = Field(default_factory=list)
+    readme_content: str = Field(default="")
+    latest_sha: str = Field(default="")
 
     @field_validator("full_name")
     @classmethod

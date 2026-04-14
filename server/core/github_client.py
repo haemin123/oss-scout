@@ -179,11 +179,14 @@ class GitHubClient:
             except GithubException:
                 readme_length = 0
 
+            latest_sha = ""
             try:
                 commits = repo.get_commits()
+                first_commit = commits[0]
                 last_commit_date = (
-                    commits[0].commit.committer.date.strftime("%Y-%m-%d")
+                    first_commit.commit.committer.date.strftime("%Y-%m-%d")
                 )
+                latest_sha = first_commit.sha or ""
             except (GithubException, IndexError):
                 last_commit_date = "unknown"
 
@@ -205,6 +208,7 @@ class GitHubClient:
                 "has_releases": has_releases,
                 "has_examples": has_examples,
                 "readme_length": readme_length,
+                "latest_sha": latest_sha,
             }
 
         return await self._execute(
