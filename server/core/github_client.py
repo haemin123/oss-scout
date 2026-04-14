@@ -305,6 +305,40 @@ class GitHubClient:
             "get_file_tree", _get, cache_key=cache_key,
         )
 
+    async def get_file_content(
+        self, owner: str, name: str, path: str,
+    ) -> str:
+        """Get the decoded text content of a single file in the repo.
+
+        Returns the content truncated to 8000 chars.
+        Raises GithubException if the file does not exist.
+        """
+        cache_key = _cache_key("file", owner, name, path)
+
+        def _get() -> str:
+            repo = self._github.get_repo(f"{owner}/{name}")
+            content_file = repo.get_contents(path)
+            # get_contents can return a list for directories
+            if isinstance(content_file, list):
+                raise GithubException(
+                    404, {"message": f"{path} is a directory"},
+                    headers={},
+                )
+            text = content_file.decoded_content.decode(
+                "utf-8", errors="replace",
+            )
+            self._update_rate_limit()
+            return text[:8000]
+
+        result = await self._execute(
+            "get_file_content", _get, cache_key=cache_key,
+        )
+        if isinstance(result, dict) and "_text" in result:
+            return result["_text"]
+        if isinstance(result, str):
+            return result
+        return ""
+
     async def download_tarball(
         self,
         owner: str,

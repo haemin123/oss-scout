@@ -35,6 +35,7 @@ from server.tools.batch import (
     handle_batch_search,
     handle_batch_validate,
 )
+from server.tools.envcheck import ENVCHECK_TOOL, handle_envcheck
 from server.tools.explain import EXPLAIN_TOOL, handle_explain
 from server.tools.preview import PREVIEW_TOOL, handle_preview
 from server.tools.license import LICENSE_TOOL, handle_license
@@ -109,6 +110,7 @@ async def list_tools() -> list[Tool]:
         BATCH_VALIDATE_TOOL,
         BATCH_SCAFFOLD_TOOL,
         PREVIEW_TOOL,
+        ENVCHECK_TOOL,
     ]
 
 
@@ -237,6 +239,22 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
             _log("error", "batch_scaffold_failed", error=str(e)[:200])
             return [TextContent(type="text", text=json.dumps(
                 {"error": "배치 스캐폴딩 중 오류가 발생했습니다."},
+                ensure_ascii=False,
+            ))]
+
+    if name == "check_env":
+        _log("info", "tool_called", tool="check_env")
+        try:
+            github = _get_github_client()
+            return await handle_envcheck(arguments, github)
+        except ValueError as e:
+            return [TextContent(type="text", text=json.dumps(
+                {"error": str(e)}, ensure_ascii=False,
+            ))]
+        except Exception as e:
+            _log("error", "envcheck_failed", error=str(e)[:200])
+            return [TextContent(type="text", text=json.dumps(
+                {"error": "환경변수 분석 중 오류가 발생했습니다."},
                 ensure_ascii=False,
             ))]
 
