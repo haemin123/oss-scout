@@ -131,20 +131,40 @@ async def list_tools() -> list[Tool]:
         ADAPT_STACK_TOOL,
         MERGE_REPOS_TOOL,
         GENERATE_WIRING_TOOL,
+        Tool(
+            name="scout_version",
+            description="OSS Scout MCP 서버의 버전과 상태를 확인합니다.",
+            inputSchema={
+                "type": "object",
+                "properties": {},
+            },
+        ),
     ]
 
 
 @app.call_tool()
 async def call_tool(name: str, arguments: dict) -> list[TextContent]:
     if name == "hello":
+        from server.version import get_status_line
         user_name = arguments.get("name", "World")
         _log("info", "tool_called", tool="hello", name=user_name)
+        status = get_status_line()
         return [
             TextContent(
                 type="text",
-                text=f"Hello, {user_name}! OSS Scout is ready.",
+                text=f"Hello, {user_name}! {status}",
             )
         ]
+
+    if name == "scout_version":
+        from server.version import get_version_info, get_status_line
+        _log("info", "tool_called", tool="scout_version")
+        info = get_version_info()
+        result = {
+            "status_line": get_status_line(),
+            **info,
+        }
+        return [TextContent(type="text", text=json.dumps(result, ensure_ascii=False, indent=2))]
 
     if name == "search_boilerplate":
         _log("info", "tool_called", tool="search_boilerplate")
