@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 
 from server.tools.integration_check import (
+    check_api_url_consistency,
     check_dependencies,
     check_empty_files,
     check_env_vars,
@@ -535,3 +536,194 @@ class TestHandleValidateIntegration:
         assert data["status"] == "WARN"
         assert data["summary"]["errors"] == 0
         assert data["summary"]["warnings"] > 0
+
+
+# ===========================================================================
+# check_api_url_consistency
+# ===========================================================================
+
+
+class TestCheckApiUrlConsistency:
+    def test_nextjs_app_router_routes_matched(self, tmp_path: Path) -> None:
+        """Next.js App Router file-based routes are detected and matched."""
+        _write_file(str(tmp_path), "app/api/reports/route.ts", (
+            "export async function GET() { return Response.json([]); }\n"
+        ))
+        _write_file(str(tmp_path), "src/hooks/useReports.ts", (
+            "const res = fetch('/api/reports');\n"
+        ))
+        issues = check_api_url_consistency(str(tmp_path))
+        assert len(issues) == 0
+
+    def test_express_router_get_detected(self, tmp_path: Path) -> None:
+        """Express router.get() routes are detected."""
+        _write_file(str(tmp_path), "routes/reports.ts", (
+            "router.get('/api/reports', handler);\n"
+        ))
+        _write_file(str(tmp_path), "src/App.tsx", (
+            "fetch('/api/reports');\n"
+        ))
+        issues = check_api_url_consistency(str(tmp_path))
+        assert len(issues) == 0
+
+    def test_fastapi_decorator_detected(self, tmp_path: Path) -> None:
+        """FastAPI @app.get() routes are detected."""
+        _write_file(str(tmp_path), "main.py", (
+            "@app.get('/api/users')\n"
+            "async def get_users():\n"
+            "    pass\n"
+        ))
+        _write_file(str(tmp_path), "src/hooks/useUsers.ts", (
+            "const data = fetch('/api/users');\n"
+        ))
+        issues = check_api_url_consistency(str(tmp_path))
+        assert len(issues) == 0
+
+    def test_frontend_fetch_detected(self, tmp_path: Path) -> None:
+        """Frontend fetch() calls with API URLs are detected."""
+        _write_file(str(tmp_path), "src/api.ts", (
+            "const res = await fetch('/api/items');\n"
+        ))
+        # No backend route defined
+        issues = check_api_url_consistency(str(tmp_path))
+        assert len(issues) == 1
+        assert issues[0]["type"] == "api_url_mismatch"
+        assert "/api/items" in issues[0]["detail"]
+
+    def test_frontend_axios_detected(self, tmp_path: Path) -> None:
+        """Frontend axios calls with API URLs are detected."""
+        _write_file(str(tmp_path), "src/services/report.ts", (
+            "const res = axios.get('/api/reports');\n"
+            "axios.post('/api/reports');\n"
+        ))
+        _write_file(str(tmp_path), "routes/api.ts", (
+            "router.get('/api/reports', handler);\n"
+            "router.post('/api/reports', handler);\n"
+        ))
+        issues = check_api_url_consistency(str(tmp_path))
+        assert len(issues) == 0
+
+    def test_mismatch_detected(self, tmp_path: Path) -> None:
+        """Mismatch detected when frontend has URL not in backend."""
+        _write_file(str(tmp_path), "src/hooks/useReports.ts", (
+            "const res = fetch('/api/reports/');\n"
+            "const users = fetch('/api/users');\n"
+        ))
+        _write_file(str(tmp_path), "routes/api.ts", (
+            "router.get('/api/reports', handler);\n"
+        ))
+        issues = check_api_url_consistency(str(tmp_path))
+        # /api/reports/ should match /api/reports (normalized)
+        # /api/users has no backend route
+        mismatch = [i for i in issues if i["type"] == "api_url_mismatch"]
+        assert len(mismatch) == 1
+        assert "/api/users" in mismatch[0]["detail"]
+
+    def test_match_detected_urls_align(self, tmp_path: Path) -> None:
+        """No issues when frontend and backend URLs align correctly."""
+        _write_file(str(tmp_path), "src/App.tsx", (
+            "fetch('/api/users');\n"
+            "fetch('/api/posts');\n"
+        ))
+        _write_file(str(tmp_path), "server/routes.py", (
+            "@app.get('/api/users')\n"
+            "async def get_users(): pass\n"
+            "@app.get('/api/posts')\n"
+            "async def get_posts(): pass\n"
+        ))
+        issues = check_api_url_consistency(str(tmp_path))
+        assert len(issues) == 0
+
+    def test_path_normalization_trailing_slash(self, tmp_path: Path) -> None:
+        """Trailing slashes are normalized for comparison."""
+        _write_file(str(tmp_path), "src/App.tsx", (
+            "fetch('/api/reports/');\n"
+        ))
+        _write_file(str(tmp_path), "routes/api.ts", (
+            "router.get('/api/reports', handler);\n"
+        ))
+        issues = check_api_url_consistency(str(tmp_path))
+        assert len(issues) == 0
+
+    def test_no_false_positives_for_non_api_urls(self, tmp_path: Path) -> None:
+        """Non-API URLs (e.g., /about, /home) should not be flagged."""
+        _write_file(str(tmp_path), "src/App.tsx", (
+            "fetch('/about');\n"
+            "fetch('/home');\n"
+            "const link = '/contact';\n"
+        ))
+        issues = check_api_url_consistency(str(tmp_path))
+        assert len(issues) == 0
+
+    def test_useswr_pattern_detected(self, tmp_path: Path) -> None:
+        """useSWR('/api/...') calls are detected."""
+        _write_file(str(tmp_path), "src/hooks/useData.ts", (
+            "const { data } = useSWR('/api/dashboard');\n"
+        ))
+        issues = check_api_url_consistency(str(tmp_path))
+        assert len(issues) == 1
+        assert "/api/dashboard" in issues[0]["detail"]
+
+    def test_dynamic_route_matching(self, tmp_path: Path) -> None:
+        """Next.js dynamic routes like [id] match frontend URLs."""
+        _write_file(str(tmp_path), "app/api/reports/[id]/route.ts", (
+            "export async function GET() { return Response.json({}); }\n"
+        ))
+        _write_file(str(tmp_path), "src/App.tsx", (
+            "fetch('/api/reports/123');\n"
+        ))
+        issues = check_api_url_consistency(str(tmp_path))
+        assert len(issues) == 0
+
+    def test_express_app_post_detected(self, tmp_path: Path) -> None:
+        """Express app.post() routes are detected."""
+        _write_file(str(tmp_path), "server.js", (
+            "app.post('/api/auth/login', handler);\n"
+        ))
+        _write_file(str(tmp_path), "src/auth.ts", (
+            "axios.post('/api/auth/login');\n"
+        ))
+        issues = check_api_url_consistency(str(tmp_path))
+        assert len(issues) == 0
+
+    def test_starlette_route_detected(self, tmp_path: Path) -> None:
+        """Starlette Route() definitions are detected."""
+        _write_file(str(tmp_path), "app.py", (
+            "Route('/api/health', health_check)\n"
+        ))
+        _write_file(str(tmp_path), "src/health.ts", (
+            "fetch('/api/health');\n"
+        ))
+        issues = check_api_url_consistency(str(tmp_path))
+        assert len(issues) == 0
+
+    def test_case_insensitive_normalization(self, tmp_path: Path) -> None:
+        """Path comparison is case-insensitive."""
+        _write_file(str(tmp_path), "src/App.tsx", (
+            "fetch('/API/Users');\n"
+        ))
+        _write_file(str(tmp_path), "routes/api.ts", (
+            "router.get('/api/users', handler);\n"
+        ))
+        issues = check_api_url_consistency(str(tmp_path))
+        assert len(issues) == 0
+
+    def test_no_issues_empty_project(self, tmp_path: Path) -> None:
+        """Empty project has no API URL consistency issues."""
+        issues = check_api_url_consistency(str(tmp_path))
+        assert len(issues) == 0
+
+    def test_issue_format_fields(self, tmp_path: Path) -> None:
+        """Issue dicts have all required fields."""
+        _write_file(str(tmp_path), "src/App.tsx", (
+            "fetch('/api/missing');\n"
+        ))
+        issues = check_api_url_consistency(str(tmp_path))
+        assert len(issues) == 1
+        issue = issues[0]
+        assert issue["type"] == "api_url_mismatch"
+        assert issue["severity"] == "warning"
+        assert "file" in issue
+        assert "line" in issue
+        assert "detail" in issue
+        assert "fix" in issue

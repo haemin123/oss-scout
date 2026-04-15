@@ -32,7 +32,10 @@ oss-scout/
 │   │   ├── scaffold.py      # scaffold
 │   │   ├── license.py       # check_license
 │   │   ├── validate.py      # validate_repo (sub-agent orchestration)
-│   │   └── batch.py         # batch_search, batch_validate, batch_scaffold (parallel)
+│   │   ├── batch.py         # batch_search, batch_validate, batch_scaffold (parallel)
+│   │   ├── search_feature.py    # search_feature (기능 단위 코드 검색)
+│   │   ├── inject_feature.py    # inject_feature (기능 코드 주입)
+│   │   └── validate_schema.py   # validate_schema (스키마 검증)
 │   ├── agents/              # Rule-based sub-agents
 │   │   ├── base.py          # BaseAgent, AgentResult
 │   │   ├── license_agent.py # License cross-validation
@@ -106,9 +109,10 @@ claude mcp add oss-scout -- python -m server.main
 
 ## MCP Prompts
 
-Two MCP Prompts are available for Claude Code to use:
+Three MCP Prompts are available for Claude Code to use:
 - `analyze_candidates`: Analyze search results and recommend the best option
 - `evaluate_repo`: Deep evaluation of a specific repo for a given purpose
+- `plan_feature_injection`: Plan feature injection strategy from search results
 
 ## Ambiguity Protocol
 

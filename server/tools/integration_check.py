@@ -713,6 +713,248 @@ def check_empty_files(project_dir: str) -> list[dict[str, Any]]:
 
 
 # ---------------------------------------------------------------------------
+# 6. API URL consistency checking
+# ---------------------------------------------------------------------------
+
+# Frontend API URL patterns
+_FE_FETCH_RE = re.compile(
+    r"""(?:fetch|axios\.(?:get|post|put|patch|delete)|useSWR)\s*\(\s*"""
+    r"""['"`]([^'"`\s]+)['"`]""",
+)
+_FE_TEMPLATE_API_RE = re.compile(
+    r"""\$\{[^}]+\}\s*/([a-zA-Z0-9_/-]+)""",
+)
+_FE_STRING_API_RE = re.compile(
+    r"""['"`](/api/[^'"`\s]+)['"`]""",
+)
+
+# Backend route patterns
+_BE_EXPRESS_RE = re.compile(
+    r"""(?:router|app)\s*\.\s*(get|post|put|patch|delete)\s*\(\s*"""
+    r"""['"]([^'"]+)['"]""",
+)
+_BE_FASTAPI_RE = re.compile(
+    r"""@(?:app|router)\s*\.\s*(get|post|put|patch|delete)\s*\(\s*"""
+    r"""['"]([^'"]+)['"]""",
+)
+_BE_STARLETTE_RE = re.compile(
+    r"""Route\s*\(\s*['"]([^'"]+)['"]""",
+)
+
+
+def _normalize_api_path(path: str) -> str:
+    """Normalize an API path for comparison.
+
+    Strips trailing slashes and lowercases the path.
+    """
+    normalized = path.rstrip("/")
+    if not normalized:
+        normalized = "/"
+    return normalized.lower()
+
+
+def _is_api_url(url: str) -> bool:
+    """Check if a URL looks like an API endpoint (starts with /api/)."""
+    return url.startswith("/api/") or url == "/api"
+
+
+def _scan_frontend_api_urls(
+    project_dir: str,
+) -> list[dict[str, Any]]:
+    """Scan frontend code files for API endpoint URLs.
+
+    Returns a list of dicts: {url, file, line, normalized}
+    """
+    results: list[dict[str, Any]] = []
+    code_files = _iter_code_files(project_dir, _JS_EXTENSIONS)
+
+    for rel_path, abs_path in code_files:
+        content = _safe_read(abs_path)
+        if not content:
+            continue
+
+        lines = content.splitlines()
+        for i, line in enumerate(lines, start=1):
+            urls_found: list[str] = []
+
+            # fetch/axios/useSWR patterns
+            for match in _FE_FETCH_RE.finditer(line):
+                url = match.group(1)
+                if _is_api_url(url):
+                    urls_found.append(url)
+
+            # Plain string literals containing /api/
+            for match in _FE_STRING_API_RE.finditer(line):
+                url = match.group(1)
+                if url not in urls_found and _is_api_url(url):
+                    urls_found.append(url)
+
+            for url in urls_found:
+                results.append({
+                    "url": url,
+                    "file": rel_path,
+                    "line": i,
+                    "normalized": _normalize_api_path(url),
+                })
+
+    return results
+
+
+def _scan_backend_routes(
+    project_dir: str,
+) -> list[dict[str, Any]]:
+    """Scan backend code files for route definitions.
+
+    Also detects Next.js App Router file-based routes.
+    Returns a list of dicts: {url, file, line, method, normalized}
+    """
+    results: list[dict[str, Any]] = []
+
+    # --- Code-based routes (Express, FastAPI, Starlette) ---
+    code_files = _iter_code_files(project_dir)
+
+    for rel_path, abs_path in code_files:
+        content = _safe_read(abs_path)
+        if not content:
+            continue
+
+        lines = content.splitlines()
+        for i, line in enumerate(lines, start=1):
+            # Express: router.get("/api/...", ...) or app.post("/api/...", ...)
+            for match in _BE_EXPRESS_RE.finditer(line):
+                method = match.group(1).upper()
+                url = match.group(2)
+                results.append({
+                    "url": url,
+                    "file": rel_path,
+                    "line": i,
+                    "method": method,
+                    "normalized": _normalize_api_path(url),
+                })
+
+            # FastAPI: @app.get("/api/...") or @router.post("/api/...")
+            for match in _BE_FASTAPI_RE.finditer(line):
+                method = match.group(1).upper()
+                url = match.group(2)
+                results.append({
+                    "url": url,
+                    "file": rel_path,
+                    "line": i,
+                    "method": method,
+                    "normalized": _normalize_api_path(url),
+                })
+
+            # Starlette: Route("/api/...", ...)
+            for match in _BE_STARLETTE_RE.finditer(line):
+                url = match.group(1)
+                results.append({
+                    "url": url,
+                    "file": rel_path,
+                    "line": i,
+                    "method": "ANY",
+                    "normalized": _normalize_api_path(url),
+                })
+
+    # --- Next.js App Router file-based routes ---
+    app_api_dir = os.path.join(project_dir, "app", "api")
+    if os.path.isdir(app_api_dir):
+        for dirpath, _dirnames, filenames in os.walk(app_api_dir):
+            for fname in filenames:
+                if fname.startswith("route.") and os.path.splitext(fname)[1].lower() in {
+                    ".ts", ".tsx", ".js", ".jsx",
+                }:
+                    abs_path = os.path.join(dirpath, fname)
+                    rel_dir = os.path.relpath(dirpath, project_dir).replace("\\", "/")
+                    # Convert "app/api/reports/[id]" -> "/api/reports/[id]"
+                    route_path = "/" + rel_dir.replace("app/", "", 1)
+                    rel_file = os.path.relpath(abs_path, project_dir).replace("\\", "/")
+                    results.append({
+                        "url": route_path,
+                        "file": rel_file,
+                        "line": 0,
+                        "method": "ANY",
+                        "normalized": _normalize_api_path(route_path),
+                    })
+
+    return results
+
+
+def check_api_url_consistency(project_dir: str) -> list[dict[str, Any]]:
+    """Check that frontend API URLs have matching backend routes.
+
+    Returns a list of issue dicts.
+    """
+    issues: list[dict[str, Any]] = []
+
+    frontend_urls = _scan_frontend_api_urls(project_dir)
+    backend_routes = _scan_backend_routes(project_dir)
+
+    # Build set of normalized backend paths
+    backend_paths: set[str] = {r["normalized"] for r in backend_routes}
+
+    # Also build a set that includes dynamic segment matching:
+    # e.g., /api/reports/[id] should match /api/reports/123
+    # For simplicity, we normalize [param] and :param to a wildcard marker
+    def _normalize_dynamic(path: str) -> str:
+        """Replace dynamic segments like [id] or :id with a wildcard."""
+        # Next.js style: [param]
+        path = re.sub(r"\[[^\]]+\]", "*", path)
+        # Express style: :param
+        parts = path.split("/")
+        parts = ["*" if p.startswith(":") else p for p in parts]
+        return "/".join(parts)
+
+    backend_patterns: set[str] = {_normalize_dynamic(p) for p in backend_paths}
+
+    # Check each frontend URL
+    seen_urls: set[str] = set()
+    for fe in frontend_urls:
+        normalized = fe["normalized"]
+        if normalized in seen_urls:
+            continue
+        seen_urls.add(normalized)
+
+        # Direct match
+        if normalized in backend_paths:
+            continue
+
+        # Dynamic match: normalize the frontend URL and check patterns
+        fe_dynamic = _normalize_dynamic(normalized)
+        if fe_dynamic in backend_patterns:
+            continue
+
+        # Check if any backend pattern could match
+        # e.g., frontend /api/reports/123 matches backend /api/reports/*
+        matched = False
+        fe_parts = normalized.split("/")
+        for bp in backend_paths:
+            bp_norm = _normalize_dynamic(bp)
+            bp_parts = bp_norm.split("/")
+            if len(fe_parts) == len(bp_parts) and all(
+                fp == bp_p or bp_p == "*"
+                for fp, bp_p in zip(fe_parts, bp_parts, strict=True)
+            ):
+                matched = True
+                break
+
+        if not matched:
+            issues.append({
+                "type": "api_url_mismatch",
+                "severity": "warning",
+                "file": fe["file"],
+                "line": fe["line"],
+                "detail": (
+                    f"프론트엔드 URL '{fe['url']}'에 대응하는 "
+                    "백엔드 라우트를 찾을 수 없습니다"
+                ),
+                "fix": "백엔드에 해당 라우트를 추가하거나 프론트엔드 URL을 수정하세요",
+                "auto_fixable": False,
+            })
+
+    return issues
+
+
+# ---------------------------------------------------------------------------
 # Main handler
 # ---------------------------------------------------------------------------
 
@@ -753,6 +995,10 @@ async def handle_validate_integration(
     # 5. Check empty files
     empty_issues = check_empty_files(project_dir)
     all_issues.extend(empty_issues)
+
+    # 6. Check API URL consistency
+    api_issues = check_api_url_consistency(project_dir)
+    all_issues.extend(api_issues)
 
     # Compute summary
     errors = sum(1 for i in all_issues if i["severity"] == "error")

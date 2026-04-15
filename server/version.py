@@ -1,7 +1,7 @@
 """OSS Scout version information."""
 
-VERSION = "0.3.1"
-VERSION_NAME = "Assembly Engine"
+VERSION = "0.4.0"
+VERSION_NAME = "Precision Surgeon"
 
 
 def get_version_info() -> dict[str, str | int]:
@@ -9,7 +9,7 @@ def get_version_info() -> dict[str, str | int]:
     return {
         "version": VERSION,
         "name": VERSION_NAME,
-        "tools": 19,
+        "tools": 22,
         "agents": 8,
         "commands": 21,
         "recipes": 8,

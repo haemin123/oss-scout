@@ -43,6 +43,7 @@ from server.tools.extract_component import (
     EXTRACT_COMPONENT_TOOL,
     handle_extract_component,
 )
+from server.tools.inject_feature import INJECT_FEATURE_TOOL, handle_inject_feature
 from server.tools.integration_check import (
     VALIDATE_INTEGRATION_TOOL,
     handle_validate_integration,
@@ -53,8 +54,10 @@ from server.tools.preview import PREVIEW_TOOL, handle_preview
 from server.tools.recipe import RECIPE_TOOL, handle_recipe
 from server.tools.scaffold import SCAFFOLD_TOOL, handle_scaffold
 from server.tools.search import SEARCH_TOOL, handle_search
+from server.tools.search_feature import SEARCH_FEATURE_TOOL, handle_search_feature
 from server.tools.smart_scaffold import SMART_SCAFFOLD_TOOL, handle_smart_scaffold
 from server.tools.validate import VALIDATE_TOOL, handle_validate
+from server.tools.validate_schema import VALIDATE_SCHEMA_TOOL, handle_validate_schema
 from server.tools.wiring import GENERATE_WIRING_TOOL, handle_generate_wiring
 
 load_dotenv()
@@ -132,6 +135,9 @@ async def list_tools() -> list[Tool]:
         ADAPT_STACK_TOOL,
         MERGE_REPOS_TOOL,
         GENERATE_WIRING_TOOL,
+        SEARCH_FEATURE_TOOL,
+        INJECT_FEATURE_TOOL,
+        VALIDATE_SCHEMA_TOOL,
         Tool(
             name="scout_version",
             description="OSS Scout MCP 서버의 버전과 상태를 확인합니다.",
@@ -423,6 +429,53 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
                 ensure_ascii=False,
             ))]
 
+    if name == "search_feature":
+        _log("info", "tool_called", tool="search_feature")
+        try:
+            github = _get_github_client()
+            return await handle_search_feature(arguments, github)
+        except ValueError as e:
+            return [TextContent(type="text", text=json.dumps(
+                {"error": str(e)}, ensure_ascii=False,
+            ))]
+        except Exception as e:
+            _log("error", "search_feature_failed", error=str(e)[:200])
+            return [TextContent(type="text", text=json.dumps(
+                {"error": "기능 검색 중 오류가 발생했습니다."},
+                ensure_ascii=False,
+            ))]
+
+    if name == "inject_feature":
+        _log("info", "tool_called", tool="inject_feature")
+        try:
+            github = _get_github_client()
+            return await handle_inject_feature(arguments, github)
+        except ValueError as e:
+            return [TextContent(type="text", text=json.dumps(
+                {"error": str(e)}, ensure_ascii=False,
+            ))]
+        except Exception as e:
+            _log("error", "inject_feature_failed", error=str(e)[:200])
+            return [TextContent(type="text", text=json.dumps(
+                {"error": "기능 주입 중 오류가 발생했습니다."},
+                ensure_ascii=False,
+            ))]
+
+    if name == "validate_schema":
+        _log("info", "tool_called", tool="validate_schema")
+        try:
+            return await handle_validate_schema(arguments)
+        except ValueError as e:
+            return [TextContent(type="text", text=json.dumps(
+                {"error": str(e)}, ensure_ascii=False,
+            ))]
+        except Exception as e:
+            _log("error", "validate_schema_failed", error=str(e)[:200])
+            return [TextContent(type="text", text=json.dumps(
+                {"error": "스키마 검증 중 오류가 발생했습니다."},
+                ensure_ascii=False,
+            ))]
+
     raise ValueError(f"Unknown tool: {name}")
 
 
@@ -459,6 +512,27 @@ async def list_prompts() -> list[Prompt]:
                 PromptArgument(
                     name="purpose",
                     description="프로젝트 목적/요구사항",
+                    required=True,
+                ),
+            ],
+        ),
+        Prompt(
+            name="plan_feature_injection",
+            description="기능 주입 계획 수립 — 검색 결과 분석 및 통합 전략 추천",
+            arguments=[
+                PromptArgument(
+                    name="feature",
+                    description="추가하려는 기능명",
+                    required=True,
+                ),
+                PromptArgument(
+                    name="search_results",
+                    description="search_feature 결과 JSON",
+                    required=True,
+                ),
+                PromptArgument(
+                    name="project_stack",
+                    description="프로젝트 스택 정보",
                     required=True,
                 ),
             ],
@@ -541,6 +615,38 @@ async def get_prompt(name: str, arguments: dict[str, Any] | None) -> GetPromptRe
 `validate_repo` 툴을 먼저 실행하여 자동 검증 결과를 확인한 후, 위 항목들을 종합적으로 평가해주세요.
 한국어로 답변해주세요.""",
                     ),
+                ),
+            ],
+        )
+
+    if name == "plan_feature_injection":
+        feature = arguments.get("feature", "")
+        search_results = arguments.get("search_results", "[]")
+        project_stack = arguments.get("project_stack", "{}")
+        prompt_text = (
+            f"다음은 \"{feature}\" 기능을 기존 프로젝트에 추가하기 위한 "
+            f"검색 결과입니다.\n\n"
+            f"## 프로젝트 스택\n{project_stack}\n\n"
+            f"## 검색 결과\n{search_results}\n\n"
+            f"## 분석 요청사항\n\n"
+            f"1. **최적 후보 선택**: 각 후보의 코드 품질, 라이선스, "
+            f"프로젝트 스택 호환성을 평가하여 최적 1~2개를 추천해주세요.\n"
+            f"2. **통합 전략**: 선택한 코드를 프로젝트에 어떻게 통합할지 "
+            f"단계별 계획을 세워주세요.\n"
+            f"3. **충돌 분석**: 기존 코드와의 충돌 가능성을 분석하고 "
+            f"해결 방안을 제시해주세요.\n"
+            f"4. **수정 필요 파일**: 추출된 코드 외에 추가로 수정해야 할 "
+            f"기존 파일 목록을 작성해주세요.\n"
+            f"5. **다음 단계**: `inject_feature` 명령으로 코드를 추출하는 "
+            f"방법을 안내해주세요.\n\n"
+            f"한국어로 답변해주세요."
+        )
+        return GetPromptResult(
+            description="기능 주입 계획 수립",
+            messages=[
+                PromptMessage(
+                    role="user",
+                    content=TextContent(type="text", text=prompt_text),
                 ),
             ],
         )

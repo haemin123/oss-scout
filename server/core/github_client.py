@@ -390,6 +390,95 @@ class GitHubClient:
                 )
                 return response.content
 
+    async def search_code(
+        self,
+        query: str,
+        language: str | None = None,
+        qualifiers: dict[str, str] | None = None,
+        max_results: int = 30,
+    ) -> list[dict[str, Any]]:
+        """Search GitHub code using the Code Search API.
+
+        Args:
+            query: Search query string.
+            language: Optional language filter.
+            qualifiers: Additional GitHub code search qualifiers.
+            max_results: Maximum results to return.
+
+        Returns:
+            List of dicts with repo_full_name, file_path, file_url,
+            content_snippet, and score.
+        """
+        q_parts = [query]
+        if language:
+            q_parts.append(f"language:{language}")
+        if qualifiers:
+            for key, val in qualifiers.items():
+                q_parts.append(f"{key}:{val}")
+        q = " ".join(q_parts)
+
+        cache_key = _cache_key("code_search", q, str(max_results))
+
+        def _search() -> list[dict[str, Any]]:
+            results: list[dict[str, Any]] = []
+            code_results = self._github.search_code(q)
+            for item in code_results[:max_results]:  # type: ignore[var-annotated]
+                snippet = ""
+                try:
+                    if item.content:
+                        decoded = item.decoded_content.decode(
+                            "utf-8", errors="replace",
+                        )
+                        lines = decoded.splitlines()
+                        snippet = "\n".join(lines[:5])
+                except Exception:
+                    _log("debug", "code_search_snippet_failed")
+                results.append({
+                    "repo_full_name": item.repository.full_name,
+                    "file_path": item.path,
+                    "file_url": item.html_url,
+                    "content_snippet": snippet,
+                    "score": getattr(item, "score", 0.0),
+                })
+            self._update_rate_limit()
+            return results
+
+        result: list[dict[str, Any]] = await self._execute(
+            "search_code", _search, cache_key=cache_key,
+        )
+        return result
+
+    async def get_file_content_batch(
+        self,
+        repo_full_name: str,
+        file_paths: list[str],
+    ) -> dict[str, str]:
+        """Fetch multiple file contents in parallel.
+
+        Args:
+            repo_full_name: Repository in 'owner/name' format.
+            file_paths: List of file paths to fetch.
+
+        Returns:
+            Dict mapping file path to decoded text content.
+        """
+        owner, name = repo_full_name.split("/", 1)
+
+        async def _fetch_one(path: str) -> tuple[str, str]:
+            try:
+                content = await self.get_file_content(owner, name, path)
+                return (path, content)
+            except Exception:
+                _log(
+                    "warning", "file_content_batch_failed",
+                    repo=repo_full_name, path=path,
+                )
+                return (path, "")
+
+        tasks = [_fetch_one(p) for p in file_paths]
+        results = await asyncio.gather(*tasks)
+        return {path: content for path, content in results if content}
+
     async def get_repos_parallel(
         self, repo_ids: list[str],
     ) -> list[dict[str, Any]]:
