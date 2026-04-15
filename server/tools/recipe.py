@@ -12,7 +12,7 @@ import logging
 from pathlib import Path
 from typing import Any
 
-import yaml
+import yaml  # type: ignore[import-untyped]
 from mcp.types import TextContent, Tool
 
 from server.core.github_client import GitHubClient
@@ -58,7 +58,9 @@ def load_recipes(path: Path | None = None) -> dict[str, Any]:
 # --- Keyword Matching --------------------------------------------------------
 
 
-def find_recipes_by_query(query: str, recipes: dict[str, Any]) -> list[tuple[str, dict, int]]:
+def find_recipes_by_query(
+    query: str, recipes: dict[str, Any],
+) -> list[tuple[str, dict[str, Any], int]]:
     """Search recipes by keyword matching against tags, name, and description.
 
     Returns a list of (recipe_id, recipe_data, score) sorted by score descending.
@@ -67,7 +69,7 @@ def find_recipes_by_query(query: str, recipes: dict[str, Any]) -> list[tuple[str
         return []
 
     keywords = query.lower().split()
-    matches: list[tuple[str, dict, int]] = []
+    matches: list[tuple[str, dict[str, Any], int]] = []
 
     for recipe_id, recipe in recipes.items():
         tags_text = " ".join(recipe.get("tags", [])).lower()

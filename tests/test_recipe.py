@@ -12,7 +12,6 @@ Tests cover:
 from __future__ import annotations
 
 import json
-import tempfile
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
@@ -26,7 +25,6 @@ from server.tools.recipe import (
     handle_recipe,
     load_recipes,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -288,9 +286,11 @@ class TestHandleRecipeInfo:
     async def test_info_missing_recipe_id(
         self, mock_github: AsyncMock, recipes_yaml_path: Path
     ) -> None:
-        with patch("server.tools.recipe.RECIPES_PATH", recipes_yaml_path):
-            with pytest.raises(ValueError, match="recipe_id"):
-                await handle_recipe({"action": "info"}, mock_github)
+        with (
+            patch("server.tools.recipe.RECIPES_PATH", recipes_yaml_path),
+            pytest.raises(ValueError, match="recipe_id"),
+        ):
+            await handle_recipe({"action": "info"}, mock_github)
 
 
 # ===========================================================================
@@ -360,7 +360,7 @@ class TestHandleRecipeApply:
                 {
                     "action": "apply",
                     "recipe_id": "nonexistent",
-                    "target_dir": "/tmp/test",
+                    "target_dir": "/tmp/test",  # noqa: S108
                 },
                 mock_github,
             )
@@ -373,21 +373,26 @@ class TestHandleRecipeApply:
     async def test_apply_missing_recipe_id(
         self, mock_github: AsyncMock, recipes_yaml_path: Path
     ) -> None:
-        with patch("server.tools.recipe.RECIPES_PATH", recipes_yaml_path):
-            with pytest.raises(ValueError, match="recipe_id"):
-                await handle_recipe(
-                    {"action": "apply", "target_dir": "/tmp/test"}, mock_github
-                )
+        with (
+            patch("server.tools.recipe.RECIPES_PATH", recipes_yaml_path),
+            pytest.raises(ValueError, match="recipe_id"),
+        ):
+            await handle_recipe(
+                {"action": "apply", "target_dir": "/tmp/test"},  # noqa: S108
+                mock_github,
+            )
 
     @pytest.mark.asyncio
     async def test_apply_missing_target_dir(
         self, mock_github: AsyncMock, recipes_yaml_path: Path
     ) -> None:
-        with patch("server.tools.recipe.RECIPES_PATH", recipes_yaml_path):
-            with pytest.raises(ValueError, match="target_dir"):
-                await handle_recipe(
-                    {"action": "apply", "recipe_id": "ai-chatbot"}, mock_github
-                )
+        with (
+            patch("server.tools.recipe.RECIPES_PATH", recipes_yaml_path),
+            pytest.raises(ValueError, match="target_dir"),
+        ):
+            await handle_recipe(
+                {"action": "apply", "recipe_id": "ai-chatbot"}, mock_github,
+            )
 
 
 # ===========================================================================

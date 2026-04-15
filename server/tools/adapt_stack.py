@@ -106,7 +106,10 @@ _STACK_CATEGORIES: dict[str, list[str]] = {
 
 ADAPT_STACK_TOOL = Tool(
     name="adapt_stack",
-    description="프로젝트의 기술 스택을 다른 스택으로 전환하기 위한 마이그레이션 계획을 생성합니다.",
+    description=(
+        "프로젝트의 기술 스택을 다른 스택으로 전환하기 위한"
+        " 마이그레이션 계획을 생성합니다."
+    ),
     inputSchema={
         "type": "object",
         "properties": {
@@ -273,7 +276,10 @@ def build_migration_plan(
                 "remove_deps": [],
                 "add_deps": [],
                 "affected_files": [],
-                "notes": f"{current_id} -> {target_id} 자동 마이그레이션 규칙 없음. 수동 전환 필요.",
+                "notes": (
+                    f"{current_id} -> {target_id}"
+                    " 자동 마이그레이션 규칙 없음. 수동 전환 필요."
+                ),
                 "effort": "unknown",
             })
 

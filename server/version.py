@@ -4,7 +4,7 @@ VERSION = "0.3.0"
 VERSION_NAME = "Assembly Engine"
 
 
-def get_version_info() -> dict:
+def get_version_info() -> dict[str, str | int]:
     """Return full version information."""
     return {
         "version": VERSION,

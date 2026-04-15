@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import os
-import tempfile
 from pathlib import Path
 
 import pytest
@@ -17,7 +16,6 @@ from server.tools.integration_check import (
     handle_validate_integration,
     scan_imports,
 )
-
 
 # ===========================================================================
 # Helpers
@@ -121,8 +119,14 @@ class TestCheckDependencies:
             "devDependencies": {},
         }))
         imports = [
-            {"file": "src/App.tsx", "line": 1, "module": "react", "kind": "js", "is_relative": False},
-            {"file": "src/App.tsx", "line": 2, "module": "@assistant-ui/react", "kind": "js", "is_relative": False},
+            {
+                "file": "src/App.tsx", "line": 1,
+                "module": "react", "kind": "js", "is_relative": False,
+            },
+            {
+                "file": "src/App.tsx", "line": 2,
+                "module": "@assistant-ui/react", "kind": "js", "is_relative": False,
+            },
         ]
         issues = check_dependencies(str(tmp_path), imports)
         missing = [i for i in issues if i["type"] == "missing_dependency"]
@@ -134,8 +138,14 @@ class TestCheckDependencies:
             "dependencies": {"react": "^18.0.0", "axios": "^1.0.0"},
         }))
         imports = [
-            {"file": "src/App.tsx", "line": 1, "module": "react", "kind": "js", "is_relative": False},
-            {"file": "src/lib.ts", "line": 1, "module": "axios", "kind": "js", "is_relative": False},
+            {
+                "file": "src/App.tsx", "line": 1,
+                "module": "react", "kind": "js", "is_relative": False,
+            },
+            {
+                "file": "src/lib.ts", "line": 1,
+                "module": "axios", "kind": "js", "is_relative": False,
+            },
         ]
         issues = check_dependencies(str(tmp_path), imports)
         assert len(issues) == 0
@@ -143,9 +153,18 @@ class TestCheckDependencies:
     def test_ignores_node_builtins(self, tmp_path: Path) -> None:
         _write_file(str(tmp_path), "package.json", json.dumps({"dependencies": {}}))
         imports = [
-            {"file": "src/index.js", "line": 1, "module": "path", "kind": "js", "is_relative": False},
-            {"file": "src/index.js", "line": 2, "module": "fs", "kind": "js", "is_relative": False},
-            {"file": "src/index.js", "line": 3, "module": "node:crypto", "kind": "js", "is_relative": False},
+            {
+                "file": "src/index.js", "line": 1,
+                "module": "path", "kind": "js", "is_relative": False,
+            },
+            {
+                "file": "src/index.js", "line": 2,
+                "module": "fs", "kind": "js", "is_relative": False,
+            },
+            {
+                "file": "src/index.js", "line": 3,
+                "module": "node:crypto", "kind": "js", "is_relative": False,
+            },
         ]
         issues = check_dependencies(str(tmp_path), imports)
         assert len(issues) == 0
@@ -153,7 +172,10 @@ class TestCheckDependencies:
     def test_skips_relative_imports(self, tmp_path: Path) -> None:
         _write_file(str(tmp_path), "package.json", json.dumps({"dependencies": {}}))
         imports = [
-            {"file": "src/App.tsx", "line": 1, "module": "./Header", "kind": "js", "is_relative": True},
+            {
+                "file": "src/App.tsx", "line": 1,
+                "module": "./Header", "kind": "js", "is_relative": True,
+            },
         ]
         issues = check_dependencies(str(tmp_path), imports)
         assert len(issues) == 0
@@ -161,8 +183,14 @@ class TestCheckDependencies:
     def test_missing_python_dependency(self, tmp_path: Path) -> None:
         _write_file(str(tmp_path), "requirements.txt", "flask>=2.0\n")
         imports = [
-            {"file": "app.py", "line": 1, "module": "flask", "kind": "py", "is_relative": False, "top_level": "flask"},
-            {"file": "app.py", "line": 2, "module": "requests", "kind": "py", "is_relative": False, "top_level": "requests"},
+            {
+                "file": "app.py", "line": 1, "module": "flask",
+                "kind": "py", "is_relative": False, "top_level": "flask",
+            },
+            {
+                "file": "app.py", "line": 2, "module": "requests",
+                "kind": "py", "is_relative": False, "top_level": "requests",
+            },
         ]
         issues = check_dependencies(str(tmp_path), imports)
         missing = [i for i in issues if "requests" in i["detail"]]
@@ -171,9 +199,18 @@ class TestCheckDependencies:
     def test_ignores_python_stdlib(self, tmp_path: Path) -> None:
         _write_file(str(tmp_path), "requirements.txt", "")
         imports = [
-            {"file": "app.py", "line": 1, "module": "json", "kind": "py", "is_relative": False, "top_level": "json"},
-            {"file": "app.py", "line": 2, "module": "os", "kind": "py", "is_relative": False, "top_level": "os"},
-            {"file": "app.py", "line": 3, "module": "pathlib", "kind": "py", "is_relative": False, "top_level": "pathlib"},
+            {
+                "file": "app.py", "line": 1, "module": "json",
+                "kind": "py", "is_relative": False, "top_level": "json",
+            },
+            {
+                "file": "app.py", "line": 2, "module": "os",
+                "kind": "py", "is_relative": False, "top_level": "os",
+            },
+            {
+                "file": "app.py", "line": 3, "module": "pathlib",
+                "kind": "py", "is_relative": False, "top_level": "pathlib",
+            },
         ]
         issues = check_dependencies(str(tmp_path), imports)
         assert len(issues) == 0
@@ -182,7 +219,10 @@ class TestCheckDependencies:
         _write_file(str(tmp_path), "requirements.txt", "")
         _write_file(str(tmp_path), "server/__init__.py", "")
         imports = [
-            {"file": "main.py", "line": 1, "module": "server.tools", "kind": "py", "is_relative": False, "top_level": "server"},
+            {
+                "file": "main.py", "line": 1, "module": "server.tools",
+                "kind": "py", "is_relative": False, "top_level": "server",
+            },
         ]
         issues = check_dependencies(str(tmp_path), imports)
         assert len(issues) == 0
@@ -190,7 +230,10 @@ class TestCheckDependencies:
     def test_auto_fixable_flag(self, tmp_path: Path) -> None:
         _write_file(str(tmp_path), "package.json", json.dumps({"dependencies": {}}))
         imports = [
-            {"file": "src/App.tsx", "line": 1, "module": "lodash", "kind": "js", "is_relative": False},
+            {
+                "file": "src/App.tsx", "line": 1,
+                "module": "lodash", "kind": "js", "is_relative": False,
+            },
         ]
         issues = check_dependencies(str(tmp_path), imports)
         assert len(issues) == 1
@@ -202,7 +245,10 @@ class TestCheckDependencies:
             "dependencies": {"@mui/material": "^5.0.0"},
         }))
         imports = [
-            {"file": "src/App.tsx", "line": 1, "module": "@mui/material/Button", "kind": "js", "is_relative": False},
+            {
+                "file": "src/App.tsx", "line": 1,
+                "module": "@mui/material/Button", "kind": "js", "is_relative": False,
+            },
         ]
         issues = check_dependencies(str(tmp_path), imports)
         assert len(issues) == 0

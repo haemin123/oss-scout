@@ -17,18 +17,17 @@ from server.tools.wiring import (
     detect_project_stack,
     handle_generate_wiring,
 )
-from server.tools.wiring_templates import get_template_module
 from server.tools.wiring_templates import (
     api_hook,
     auth_guard,
     db_crud,
     file_upload,
     form_handler,
+    get_template_module,
     middleware,
     sse_stream,
     websocket,
 )
-
 
 # ===========================================================================
 # detect_project_stack
@@ -219,7 +218,7 @@ class TestAuthGuardTemplate:
         )
         content = result["files"][0]["content"]
         assert "getToken" in content
-        assert "middleware.ts" == result["files"][0]["path"]
+        assert result["files"][0]["path"] == "middleware.ts"
 
     def test_firebase_nextjs(self) -> None:
         result = auth_guard.generate(

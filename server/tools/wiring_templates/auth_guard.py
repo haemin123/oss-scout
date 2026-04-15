@@ -174,7 +174,8 @@ export function ProtectedRoute({
             },
         ],
         "usage_example": (
-            '<ProtectedRoute isAuthenticated={!!user} onUnauthenticated={() => router.push("/login")}>'
+            "<ProtectedRoute isAuthenticated={!!user}"
+            ' onUnauthenticated={() => router.push("/login")}>'
             "\n  <DashboardPage />\n</ProtectedRoute>"
         ),
         "dependencies_needed": [],

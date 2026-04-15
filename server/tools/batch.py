@@ -14,7 +14,7 @@ from typing import Any
 
 from mcp.types import TextContent, Tool
 
-from server.core.github_client import GitHubClient, parse_repo_url
+from server.core.github_client import GitHubClient
 from server.tools.scaffold import handle_scaffold
 from server.tools.search import handle_search
 from server.tools.validate import handle_validate
@@ -197,7 +197,7 @@ async def handle_batch_search(
     labelled_results: list[dict[str, Any]] = []
     for i, result in enumerate(raw_results):
         label = queries[i].get("label", f"query_{i}")
-        if isinstance(result, Exception):
+        if isinstance(result, BaseException):
             _log("warning", "batch_search_item_failed", label=label, error=str(result)[:200])
             labelled_results.append({
                 "label": label,
@@ -240,7 +240,7 @@ async def handle_batch_validate(
     validation_results: list[dict[str, Any]] = []
     for i, result in enumerate(raw_results):
         url = repo_urls[i]
-        if isinstance(result, Exception):
+        if isinstance(result, BaseException):
             _log("warning", "batch_validate_item_failed", url=url, error=str(result)[:200])
             validation_results.append({
                 "repo_url": url,
@@ -283,7 +283,7 @@ async def handle_batch_scaffold(
     scaffold_results: list[dict[str, Any]] = []
     for i, result in enumerate(raw_results):
         url = repos[i].get("repo_url", f"repo_{i}")
-        if isinstance(result, Exception):
+        if isinstance(result, BaseException):
             _log("warning", "batch_scaffold_item_failed", url=url, error=str(result)[:200])
             scaffold_results.append({
                 "repo_url": url,

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import math
-from datetime import date, timedelta
+from datetime import date
 
 import pytest
 
@@ -20,7 +20,6 @@ from server.core.scoring import (
     calculate_stack_score,
 )
 from server.models import RepoInfo
-
 
 # --- Activity score ---
 
@@ -247,7 +246,11 @@ def test_functional_fit_empty_keywords() -> None:
 
 def test_functional_fit_description_match() -> None:
     score = calculate_functional_fit(
-        {"description": "SaaS boilerplate with auth and payment", "file_tree": [], "readme_content": ""},
+        {
+            "description": "SaaS boilerplate with auth and payment",
+            "file_tree": [],
+            "readme_content": "",
+        },
         ["auth", "payment"],
     )
     # Each keyword matches description (0.4) only -> 0.4 per keyword -> 0.4

@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 from datetime import date
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import BaseModel, Field, field_validator
 
 
-class LicenseCategory(str, Enum):
+class LicenseCategory(StrEnum):
     """License classification categories."""
 
     PERMISSIVE = "permissive"

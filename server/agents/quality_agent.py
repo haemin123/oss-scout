@@ -7,6 +7,7 @@ and issue health. No LLM calls.
 from __future__ import annotations
 
 import re
+from typing import Any
 
 from server.agents.base import AgentResult, BaseAgent
 
@@ -48,7 +49,7 @@ class QualityAgent(BaseAgent):
     def name(self) -> str:
         return "quality"
 
-    async def analyze(self, repo_data: dict) -> AgentResult:
+    async def analyze(self, repo_data: dict[str, Any]) -> AgentResult:
         findings: list[str] = []
         warnings: list[str] = []
         score = 1.0

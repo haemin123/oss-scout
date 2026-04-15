@@ -6,10 +6,7 @@ and dependency resolution. All tests run without network.
 
 from __future__ import annotations
 
-import pytest
-
 from server.tools.extract_component import (
-    COMPONENT_PATTERNS,
     _build_install_command,
     _extract_imports_from_content,
     _get_keywords_for_component,
@@ -17,7 +14,6 @@ from server.tools.extract_component import (
     _normalize_component,
     _resolve_npm_packages,
 )
-
 
 # ===========================================================================
 # _normalize_component
@@ -53,7 +49,8 @@ class TestGetKeywordsForComponent:
 
     def test_compound_component(self) -> None:
         keywords = _get_keywords_for_component("chat-input")
-        # "chat" resolves to COMPONENT_PATTERNS["chat"], "input" resolves to COMPONENT_PATTERNS["form"]
+        # "chat" resolves to COMPONENT_PATTERNS["chat"],
+        # "input" resolves to COMPONENT_PATTERNS["form"]
         assert "chat" in keywords
         assert "message" in keywords
         # "input" is part of the "form" category

@@ -3,11 +3,9 @@
 from __future__ import annotations
 
 import json
-import tempfile
 from pathlib import Path
 
 import pytest
-import pytest_asyncio
 
 from server.tools.preview import (
     check_needs_install,

@@ -7,17 +7,13 @@ All tests run without network or filesystem access.
 
 from __future__ import annotations
 
-import pytest
-
 from server.tools.adapt_stack import (
-    STACK_MIGRATIONS,
     _estimate_effort,
     build_migration_plan,
     detect_stack_from_package_json,
     detect_stack_from_requirements,
     find_affected_files,
 )
-
 
 # ===========================================================================
 # detect_stack_from_package_json

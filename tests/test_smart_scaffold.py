@@ -7,9 +7,7 @@ All tests run without network.
 
 from __future__ import annotations
 
-import io
 import json
-import tarfile
 from pathlib import Path
 
 import pytest
@@ -22,11 +20,9 @@ from server.tools.smart_scaffold import (
     _apply_remove_patterns,
     _collect_all_files,
     _detect_unused_deps,
-    _matches_any_pattern,
     _validate_glob_patterns,
     _validate_smart_scaffold_args,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers

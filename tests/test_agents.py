@@ -10,7 +10,6 @@ from server.agents.license_agent import LicenseAgent
 from server.agents.quality_agent import QualityAgent
 from server.agents.security_agent import SecurityAgent
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

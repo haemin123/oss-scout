@@ -16,8 +16,6 @@ import fnmatch
 import json
 import logging
 import re
-import shutil
-from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 from typing import Any
 
@@ -118,9 +116,8 @@ def _validate_smart_scaffold_args(arguments: dict[str, Any]) -> dict[str, Any]:
 
     # env_vars
     env_vars = arguments.get("env_vars")
-    if env_vars is not None:
-        if not isinstance(env_vars, dict):
-            raise ValueError("env_vars는 객체(키-값)여야 합니다.")
+    if env_vars is not None and not isinstance(env_vars, dict):
+        raise ValueError("env_vars는 객체(키-값)여야 합니다.")
 
     # subdir
     subdir = arguments.get("subdir")
@@ -278,9 +275,9 @@ def _apply_env_vars(directory: Path, env_vars: dict[str, str]) -> bool:
                     new_lines.append(line)
             # Add any env_vars not in the template
             existing_keys = {
-                l.split("=", 1)[0].strip()
-                for l in new_lines
-                if l.strip() and not l.strip().startswith("#") and "=" in l
+                line.split("=", 1)[0].strip()
+                for line in new_lines
+                if line.strip() and not line.strip().startswith("#") and "=" in line
             }
             for key, value in env_vars.items():
                 if key not in existing_keys:
@@ -445,7 +442,6 @@ async def handle_smart_scaffold(
         _log("info", "tarball_downloading", repo=f"{owner}/{name}")
         tarball_bytes = await github.download_tarball(owner, name)
         files_created = _safe_extract_tarball(tarball_bytes, target, subdir)
-        total_files = files_created
         files_removed = 0
 
         # Step 3: Apply keep_only

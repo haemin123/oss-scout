@@ -141,8 +141,8 @@ export function useCrud() {{
             },
         ],
         "usage_example": (
-            f"const {{ data, loading }} = useCollection();\n"
-            f"const {{ create, update, remove }} = useCrud();"
+            "const { data, loading } = useCollection();\n"
+            "const { create, update, remove } = useCrud();"
         ),
         "dependencies_needed": ["firebase"],
     }

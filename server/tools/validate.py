@@ -13,7 +13,7 @@ from typing import Any
 
 from mcp.types import TextContent, Tool
 
-from server.agents.base import AgentResult, BaseAgent
+from server.agents.base import BaseAgent
 from server.agents.license_agent import LicenseAgent
 from server.core.github_client import GitHubClient, parse_repo_url
 

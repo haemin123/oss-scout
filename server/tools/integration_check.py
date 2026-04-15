@@ -183,7 +183,7 @@ def _safe_read(filepath: str) -> str:
         size = os.path.getsize(filepath)
         if size > _MAX_FILE_SIZE:
             return ""
-        with open(filepath, "r", encoding="utf-8", errors="replace") as f:
+        with open(filepath, encoding="utf-8", errors="replace") as f:
             return f.read()
     except (OSError, UnicodeDecodeError):
         return ""
@@ -377,7 +377,10 @@ def check_dependencies(project_dir: str, imports: list[dict[str, Any]]) -> list[
                     "severity": "error",
                     "file": imp["file"],
                     "line": imp["line"],
-                    "detail": f"패키지 '{top_level}'이(가) requirements.txt/pyproject.toml에 없습니다",
+                    "detail": (
+                        f"패키지 '{top_level}'이(가)"
+                        " requirements.txt/pyproject.toml에 없습니다"
+                    ),
                     "fix": f"pip install {top_level}",
                     "auto_fixable": True,
                 })
@@ -392,7 +395,7 @@ def _load_package_json_deps(project_dir: str) -> set[str]:
         return set()
 
     try:
-        with open(pkg_path, "r", encoding="utf-8") as f:
+        with open(pkg_path, encoding="utf-8") as f:
             data = json.load(f)
     except (json.JSONDecodeError, OSError):
         return set()
@@ -411,7 +414,7 @@ def _load_python_deps(project_dir: str) -> set[str]:
     req_path = os.path.join(project_dir, "requirements.txt")
     if os.path.isfile(req_path):
         try:
-            with open(req_path, "r", encoding="utf-8") as f:
+            with open(req_path, encoding="utf-8") as f:
                 for line in f:
                     line = line.strip()
                     if not line or line.startswith("#") or line.startswith("-"):
@@ -427,7 +430,7 @@ def _load_python_deps(project_dir: str) -> set[str]:
     pyproject_path = os.path.join(project_dir, "pyproject.toml")
     if os.path.isfile(pyproject_path):
         try:
-            with open(pyproject_path, "r", encoding="utf-8") as f:
+            with open(pyproject_path, encoding="utf-8") as f:
                 content = f.read()
             # Match dependency names in common patterns
             for match in re.finditer(r'"([a-zA-Z][a-zA-Z0-9_-]*)"', content):
@@ -551,7 +554,7 @@ def _load_dotenv_vars(project_dir: str) -> dict[str, str]:
             continue
 
         try:
-            with open(env_path, "r", encoding="utf-8") as f:
+            with open(env_path, encoding="utf-8") as f:
                 for line in f:
                     line = line.strip()
                     if not line or line.startswith("#"):

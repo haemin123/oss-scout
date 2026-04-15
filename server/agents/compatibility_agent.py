@@ -6,8 +6,8 @@ No LLM calls.
 
 from __future__ import annotations
 
-import json
 import re
+from typing import Any
 
 from server.agents.base import AgentResult, BaseAgent
 
@@ -44,14 +44,14 @@ class CompatibilityAgent(BaseAgent):
     def name(self) -> str:
         return "compatibility"
 
-    async def analyze(self, repo_data: dict) -> AgentResult:
+    async def analyze(self, repo_data: dict[str, Any]) -> AgentResult:
         findings: list[str] = []
         warnings: list[str] = []
         score = 1.0
 
         file_tree: list[str] = repo_data.get("file_tree", [])
         readme_content = repo_data.get("readme_content", "")
-        package_json: dict | None = repo_data.get("package_json")
+        package_json: dict[str, Any] | None = repo_data.get("package_json")
         pyproject_content: str = repo_data.get("pyproject_content", "")
         dockerfile_content: str = repo_data.get("dockerfile_content", "")
 

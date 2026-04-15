@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 import logging
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -68,7 +68,7 @@ class LocalCache:
     async def get(self, key: str) -> dict[str, Any] | None:
         """Get a cached value by key. Returns None if missing or expired."""
         await self._ensure_initialized()
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
 
         async with aiosqlite.connect(self._db_path) as db:
             db.row_factory = aiosqlite.Row
@@ -88,7 +88,8 @@ class LocalCache:
                 return None
 
             _log("debug", "cache_hit", key=key)
-            return json.loads(row["data"])
+            result: dict[str, Any] = json.loads(row["data"])
+            return result
 
     async def get_stale(self, key: str) -> dict[str, Any] | None:
         """Get a cached value even if expired (for rate-limit fallback)."""
@@ -106,7 +107,8 @@ class LocalCache:
                 return None
 
             _log("debug", "cache_stale_hit", key=key)
-            return json.loads(row["data"])
+            stale_result: dict[str, Any] = json.loads(row["data"])
+            return stale_result
 
     async def set(
         self,
@@ -117,7 +119,7 @@ class LocalCache:
         """Store a value with TTL."""
         await self._ensure_initialized()
         ttl = ttl_hours if ttl_hours is not None else self._default_ttl_hours
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         expires_at = now + timedelta(hours=ttl)
 
         async with aiosqlite.connect(self._db_path) as db:
@@ -148,7 +150,7 @@ class LocalCache:
     async def cleanup_expired(self) -> int:
         """Delete all expired entries. Returns count of deleted rows."""
         await self._ensure_initialized()
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
 
         async with aiosqlite.connect(self._db_path) as db:
             cursor = await db.execute(

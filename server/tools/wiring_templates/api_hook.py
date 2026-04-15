@@ -41,7 +41,6 @@ def _react_hook(
     streaming: bool,
     auth_required: bool,
 ) -> dict[str, Any]:
-    auth_import = ""
     auth_header = ""
     auth_spread = ""
     if auth_required:

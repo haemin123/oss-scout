@@ -13,6 +13,7 @@ import json
 import logging
 import os
 import sys
+from typing import Any
 
 from dotenv import load_dotenv
 from mcp.server import Server
@@ -26,7 +27,8 @@ from mcp.types import (
     Tool,
 )
 
-from server.core.github_client import GitHubClient, parse_repo_url
+from server.core.github_client import GitHubClient
+from server.tools.adapt_stack import ADAPT_STACK_TOOL, handle_adapt_stack
 from server.tools.batch import (
     BATCH_SCAFFOLD_TOOL,
     BATCH_SEARCH_TOOL,
@@ -35,7 +37,6 @@ from server.tools.batch import (
     handle_batch_search,
     handle_batch_validate,
 )
-from server.tools.adapt_stack import ADAPT_STACK_TOOL, handle_adapt_stack
 from server.tools.envcheck import ENVCHECK_TOOL, handle_envcheck
 from server.tools.explain import EXPLAIN_TOOL, handle_explain
 from server.tools.extract_component import (
@@ -46,9 +47,9 @@ from server.tools.integration_check import (
     VALIDATE_INTEGRATION_TOOL,
     handle_validate_integration,
 )
+from server.tools.license import LICENSE_TOOL, handle_license
 from server.tools.merge_repos import MERGE_REPOS_TOOL, handle_merge_repos
 from server.tools.preview import PREVIEW_TOOL, handle_preview
-from server.tools.license import LICENSE_TOOL, handle_license
 from server.tools.recipe import RECIPE_TOOL, handle_recipe
 from server.tools.scaffold import SCAFFOLD_TOOL, handle_scaffold
 from server.tools.search import SEARCH_TOOL, handle_search
@@ -67,9 +68,9 @@ logging.basicConfig(
 logger = logging.getLogger("oss-scout")
 
 
-def _log(level: str, event: str, **kwargs):
+def _log(level: str, event: str, **kwargs: Any) -> None:
     """Emit a structured JSON log line."""
-    entry = {"level": level, "event": event, **kwargs}
+    entry: dict[str, Any] = {"level": level, "event": event, **kwargs}
     getattr(logger, level.lower(), logger.info)(json.dumps(entry, ensure_ascii=False))
 
 
@@ -97,7 +98,7 @@ app = Server("oss-scout")
 
 # --- Tools ----------------------------------------------------------------
 
-@app.list_tools()
+@app.list_tools()  # type: ignore[misc, no-untyped-call]
 async def list_tools() -> list[Tool]:
     return [
         Tool(
@@ -142,8 +143,8 @@ async def list_tools() -> list[Tool]:
     ]
 
 
-@app.call_tool()
-async def call_tool(name: str, arguments: dict) -> list[TextContent]:
+@app.call_tool()  # type: ignore[misc]
+async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
     if name == "hello":
         from server.version import get_status_line
         user_name = arguments.get("name", "World")
@@ -157,7 +158,7 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         ]
 
     if name == "scout_version":
-        from server.version import get_version_info, get_status_line
+        from server.version import get_status_line, get_version_info
         _log("info", "tool_called", tool="scout_version")
         info = get_version_info()
         result = {
@@ -427,7 +428,7 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
 
 # --- MCP Prompts -----------------------------------------------------------
 
-@app.list_prompts()
+@app.list_prompts()  # type: ignore[misc, no-untyped-call]
 async def list_prompts() -> list[Prompt]:
     return [
         Prompt(
@@ -465,8 +466,8 @@ async def list_prompts() -> list[Prompt]:
     ]
 
 
-@app.get_prompt()
-async def get_prompt(name: str, arguments: dict | None) -> GetPromptResult:
+@app.get_prompt()  # type: ignore[misc, no-untyped-call]
+async def get_prompt(name: str, arguments: dict[str, Any] | None) -> GetPromptResult:
     arguments = arguments or {}
 
     if name == "analyze_candidates":
@@ -479,20 +480,26 @@ async def get_prompt(name: str, arguments: dict | None) -> GetPromptResult:
                     role="user",
                     content=TextContent(
                         type="text",
-                        text=f"""다음은 "{query}" 검색 결과입니다. 각 후보를 분석하고 최적의 선택을 추천해주세요.
-
-## 검색 결과
-{results}
-
-## 분석 요청사항
-
-1. **각 후보 평가**: quality_score, license, stars, 최근 커밋 날짜를 기반으로 장단점을 정리해주세요.
-2. **에이전트 검증 결과 해석**: agents 필드가 있다면 각 에이전트(license, quality, security, compatibility)의 findings와 warnings를 해석해주세요.
-3. **추천**: 사용자의 검색 의도("{query}")에 가장 적합한 후보 1~2개를 추천하고 이유를 설명해주세요.
-4. **주의사항**: 라이선스 경고, 보안 이슈, 호환성 문제가 있다면 반드시 언급해주세요.
-5. **다음 단계**: 선택 후 `scaffold` 명령으로 프로젝트를 생성하는 방법을 안내해주세요.
-
-한국어로 답변해주세요.""",
+                        text=(
+                            f'다음은 "{query}" 검색 결과입니다.'
+                            " 각 후보를 분석하고 최적의 선택을 추천해주세요.\n\n"
+                            f"## 검색 결과\n{results}\n\n"
+                            "## 분석 요청사항\n\n"
+                            "1. **각 후보 평가**: quality_score, license, stars,"
+                            " 최근 커밋 날짜를 기반으로 장단점을 정리해주세요.\n"
+                            "2. **에이전트 검증 결과 해석**: agents 필드가 있다면"
+                            " 각 에이전트(license, quality, security,"
+                            " compatibility)의 findings와 warnings를"
+                            " 해석해주세요.\n"
+                            "3. **추천**: 사용자의 검색 의도"
+                            f'("{query}")에 가장 적합한 후보 1~2개를'
+                            " 추천하고 이유를 설명해주세요.\n"
+                            "4. **주의사항**: 라이선스 경고, 보안 이슈,"
+                            " 호환성 문제가 있다면 반드시 언급해주세요.\n"
+                            "5. **다음 단계**: 선택 후 `scaffold` 명령으로"
+                            " 프로젝트를 생성하는 방법을 안내해주세요.\n\n"
+                            "한국어로 답변해주세요."
+                        ),
                     ),
                 ),
             ],
@@ -543,7 +550,7 @@ async def get_prompt(name: str, arguments: dict | None) -> GetPromptResult:
 
 # --- Transport -------------------------------------------------------------
 
-async def run_stdio():
+async def run_stdio() -> None:
     """Run the server over stdio transport."""
     _log("info", "server_starting", transport="stdio")
     async with stdio_server() as (read_stream, write_stream):
@@ -554,16 +561,16 @@ async def run_stdio():
         )
 
 
-async def run_http(port: int):
+async def run_http(port: int) -> None:
     """Run the server over HTTP/SSE transport."""
+    import uvicorn
     from mcp.server.sse import SseServerTransport
     from starlette.applications import Starlette
     from starlette.routing import Mount, Route
-    import uvicorn
 
     sse = SseServerTransport("/messages/")
 
-    async def handle_sse(request):
+    async def handle_sse(request: Any) -> None:
         async with sse.connect_sse(
             request.scope, request.receive, request._send
         ) as streams:
@@ -580,12 +587,12 @@ async def run_http(port: int):
 
     _log("info", "server_starting", transport="http", port=port)
 
-    config = uvicorn.Config(starlette_app, host="0.0.0.0", port=port)
+    config = uvicorn.Config(starlette_app, host="0.0.0.0", port=port)  # noqa: S104
     server = uvicorn.Server(config)
     await server.serve()
 
 
-async def main():
+async def main() -> None:
     transport = os.getenv("MCP_TRANSPORT", "stdio")
 
     if transport == "stdio":

@@ -188,10 +188,7 @@ def _resolve_npm_packages(import_paths: list[str]) -> list[str]:
         # Scoped package: @scope/name
         if imp.startswith("@"):
             parts = imp.split("/")
-            if len(parts) >= 2:
-                pkg = f"{parts[0]}/{parts[1]}"
-            else:
-                pkg = imp
+            pkg = f"{parts[0]}/{parts[1]}" if len(parts) >= 2 else imp
         else:
             pkg = imp.split("/")[0]
 

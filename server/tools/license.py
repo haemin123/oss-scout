@@ -11,7 +11,6 @@ import logging
 import re
 from typing import Any
 
-from mcp.server import Server
 from mcp.types import TextContent, Tool
 
 from server.core.github_client import GitHubClient, parse_repo_url

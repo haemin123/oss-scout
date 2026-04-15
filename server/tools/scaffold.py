@@ -16,8 +16,7 @@ import logging
 import re
 import shutil
 import tarfile
-import tempfile
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -254,7 +253,7 @@ def _generate_claude_md(
     next_steps: list[str],
 ) -> Path:
     """Generate a CLAUDE.md file with source attribution."""
-    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    timestamp = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     lines = [
         f"# {name}",
@@ -269,7 +268,7 @@ def _generate_claude_md(
         lines.append("## Quick Start")
         lines.append("")
         for step in next_steps:
-            lines.append(f"```bash")
+            lines.append("```bash")
             lines.append(step)
             lines.append("```")
             lines.append("")

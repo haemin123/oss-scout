@@ -10,7 +10,6 @@ from __future__ import annotations
 import io
 import os
 import tarfile
-import tempfile
 from pathlib import Path
 
 import pytest
@@ -24,7 +23,6 @@ from server.tools.scaffold import (
     _validate_subdir,
     _validate_target_dir,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -93,12 +91,16 @@ class TestValidateTargetDir:
         with pytest.raises(SecurityError, match="현재 작업 디렉토리 하위"):
             _validate_target_dir("../../etc/malicious")
 
-    def test_rejects_absolute_outside_cwd(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_rejects_absolute_outside_cwd(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
         monkeypatch.chdir(tmp_path)
         with pytest.raises(SecurityError):
-            _validate_target_dir("/tmp/somewhere_else")
+            _validate_target_dir("/tmp/somewhere_else")  # noqa: S108
 
-    def test_rejects_nonempty_directory(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_rejects_nonempty_directory(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
         monkeypatch.chdir(tmp_path)
         target = tmp_path / "nonempty"
         target.mkdir()
@@ -106,7 +108,9 @@ class TestValidateTargetDir:
         with pytest.raises(SecurityError, match="비어있지 않습니다"):
             _validate_target_dir(str(target))
 
-    def test_accepts_empty_existing_directory(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_accepts_empty_existing_directory(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
         monkeypatch.chdir(tmp_path)
         target = tmp_path / "empty_dir"
         target.mkdir()
@@ -188,7 +192,7 @@ class TestSafeExtractTarball:
 
     def test_empty_tarball(self, tmp_path: Path) -> None:
         buf = io.BytesIO()
-        with tarfile.open(fileobj=buf, mode="w:gz") as tar:
+        with tarfile.open(fileobj=buf, mode="w:gz") as _tar:
             pass
         count = _safe_extract_tarball(buf.getvalue(), tmp_path)
         assert count == 0

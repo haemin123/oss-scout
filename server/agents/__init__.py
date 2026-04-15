@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from typing import Any
 
 from server.agents.base import AgentResult, BaseAgent
 from server.agents.compatibility_agent import CompatibilityAgent
@@ -21,7 +22,7 @@ __all__ = [
 ]
 
 
-async def run_all_agents(repo_data: dict) -> dict[str, AgentResult]:
+async def run_all_agents(repo_data: dict[str, Any]) -> dict[str, AgentResult]:
     """Run all sub-agents in parallel and return results keyed by agent name.
 
     Args:

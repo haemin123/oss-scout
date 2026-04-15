@@ -329,7 +329,11 @@ async def handle_search(
         item.pop("_license_data", None)
         final_results.append(item)
 
-    _log("info", "search_complete", results=len(final_results), total_candidates=len(search_results))
+    _log(
+        "info", "search_complete",
+        results=len(final_results),
+        total_candidates=len(search_results),
+    )
 
     return [TextContent(
         type="text",

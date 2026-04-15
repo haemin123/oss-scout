@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -17,7 +17,6 @@ from server.tools.envcheck import (
     find_env_files,
     handle_envcheck,
 )
-
 
 # ===========================================================================
 # extract_env_vars_from_text

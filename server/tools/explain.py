@@ -77,11 +77,10 @@ def _validate_args(arguments: dict[str, Any]) -> tuple[str, str | None]:
         )
 
     focus = arguments.get("focus")
-    if focus is not None:
-        if focus not in ("setup", "architecture", "license"):
-            raise ValueError(
-                "focus는 'setup', 'architecture', 'license' 중 하나여야 합니다."
-            )
+    if focus is not None and focus not in ("setup", "architecture", "license"):
+        raise ValueError(
+            "focus는 'setup', 'architecture', 'license' 중 하나여야 합니다."
+        )
     return repo_url, focus
 
 

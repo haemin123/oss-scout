@@ -25,46 +25,46 @@ def generate(stack: dict[str, str | None], config: dict[str, Any]) -> dict[str, 
 
 
 def _nextjs_sse(endpoint: str) -> dict[str, Any]:
-    server_content = f'''import {{ NextRequest }} from "next/server";
+    server_content = '''import { NextRequest } from "next/server";
 
 export const runtime = "edge";
 
-export async function POST(request: NextRequest) {{
-  const {{ message }} = await request.json();
+export async function POST(request: NextRequest) {
+  const { message } = await request.json();
 
   const encoder = new TextEncoder();
-  const stream = new ReadableStream({{
-    async start(controller) {{
+  const stream = new ReadableStream({
+    async start(controller) {
       // Replace this with your actual AI/LLM call
       const chunks = [
         "Hello! ",
         "I received your message: ",
-        `"${{message}}". `,
+        `"${message}". `,
         "Processing... ",
         "Done!",
       ];
 
-      for (const chunk of chunks) {{
+      for (const chunk of chunks) {
         controller.enqueue(
-          encoder.encode(`data: ${{JSON.stringify({{ content: chunk }})}}\\n\\n`),
+          encoder.encode(`data: ${JSON.stringify({ content: chunk })}\\n\\n`),
         );
         // Simulate delay (remove in production)
         await new Promise((r) => setTimeout(r, 100));
-      }}
+      }
 
       controller.enqueue(encoder.encode("data: [DONE]\\n\\n"));
       controller.close();
-    }},
-  }});
+    },
+  });
 
-  return new Response(stream, {{
-    headers: {{
+  return new Response(stream, {
+    headers: {
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-cache",
       Connection: "keep-alive",
-    }},
-  }});
-}}
+    },
+  });
+}
 '''
 
     hook_content = f'''import {{ useState, useCallback }} from "react";

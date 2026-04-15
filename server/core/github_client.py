@@ -109,7 +109,7 @@ class GitHubClient:
             repos = self._github.search_repositories(
                 q, sort="stars", order="desc",
             )
-            for repo in repos[:max_results]:
+            for repo in repos[:max_results]:  # type: ignore[var-annotated]
                 results.append({
                     "full_name": repo.full_name,
                     "url": repo.html_url,
@@ -123,9 +123,10 @@ class GitHubClient:
             self._update_rate_limit()
             return results
 
-        return await self._execute(
+        result: list[dict[str, Any]] = await self._execute(
             "search_repos", _search, cache_key=cache_key,
         )
+        return result
 
     async def get_repo(self, owner: str, name: str) -> dict[str, Any]:
         """Get detailed repo metadata including quality indicators."""
@@ -136,9 +137,10 @@ class GitHubClient:
 
             try:
                 contents = repo.get_contents("")
-                top_level_names = (
-                    {c.name for c in contents} if contents else set()
-                )
+                if isinstance(contents, list):
+                    top_level_names = {c.name for c in contents}
+                else:
+                    top_level_names = {contents.name} if contents else set[str]()
             except GithubException:
                 top_level_names = set()
 
@@ -154,10 +156,10 @@ class GitHubClient:
             if ".github" in top_level_names and not has_ci:
                 try:
                     gh_contents = repo.get_contents(".github")
-                    gh_names = (
-                        {c.name for c in gh_contents}
-                        if gh_contents else set()
-                    )
+                    if isinstance(gh_contents, list):
+                        gh_names = {c.name for c in gh_contents}
+                    else:
+                        gh_names = {gh_contents.name} if gh_contents else set[str]()
                     if "workflows" in gh_names:
                         has_ci = True
                 except GithubException:
@@ -211,9 +213,10 @@ class GitHubClient:
                 "latest_sha": latest_sha,
             }
 
-        return await self._execute(
+        result: dict[str, Any] = await self._execute(
             "get_repo", _get, cache_key=cache_key,
         )
+        return result
 
     async def get_readme(self, owner: str, name: str) -> str:
         """Get README content, truncated to 4000 chars."""
@@ -232,13 +235,14 @@ class GitHubClient:
                 self._update_rate_limit()
                 return ""
 
-        result = await self._execute(
+        raw_result: Any = await self._execute(
             "get_readme", _get, cache_key=cache_key,
         )
-        if isinstance(result, dict) and "_text" in result:
-            return result["_text"]
-        if isinstance(result, str):
-            return result
+        if isinstance(raw_result, dict) and "_text" in raw_result:
+            text_val: str = raw_result["_text"]
+            return text_val
+        if isinstance(raw_result, str):
+            return raw_result
         return ""
 
     async def get_license(self, owner: str, name: str) -> dict[str, Any]:
@@ -265,10 +269,11 @@ class GitHubClient:
             }
 
         try:
-            return await self._execute(
+            lic_result: dict[str, Any] = await self._execute(
                 "get_license", _get,
                 cache_key=cache_key, ttl_hours=72,
             )
+            return lic_result
         except GithubException:
             return {
                 "name": "Unknown",
@@ -301,9 +306,10 @@ class GitHubClient:
             self._update_rate_limit()
             return tree
 
-        return await self._execute(
+        tree_result: list[str] = await self._execute(
             "get_file_tree", _get, cache_key=cache_key,
         )
+        return tree_result
 
     async def get_file_content(
         self, owner: str, name: str, path: str,
@@ -330,13 +336,14 @@ class GitHubClient:
             self._update_rate_limit()
             return text[:8000]
 
-        result = await self._execute(
+        raw: Any = await self._execute(
             "get_file_content", _get, cache_key=cache_key,
         )
-        if isinstance(result, dict) and "_text" in result:
-            return result["_text"]
-        if isinstance(result, str):
-            return result
+        if isinstance(raw, dict) and "_text" in raw:
+            text_content: str = raw["_text"]
+            return text_content
+        if isinstance(raw, str):
+            return raw
         return ""
 
     async def download_tarball(
@@ -400,15 +407,16 @@ class GitHubClient:
     def _update_rate_limit(self) -> None:
         try:
             rate = self._github.get_rate_limit()
-            self._rate_remaining = rate.core.remaining
+            core = rate.core  # type: ignore[attr-defined]
+            self._rate_remaining = int(core.remaining)
             if self._rate_remaining < 50:
                 _log(
                     "warning", "rate_limit_low",
                     remaining=self._rate_remaining,
-                    reset=rate.core.reset.isoformat(),
+                    reset=core.reset.isoformat(),
                 )
         except Exception:
-            pass
+            logging.debug("Failed to update rate limit info")
 
     def _is_rate_limited(self) -> bool:
         if (
@@ -493,7 +501,7 @@ class GitHubClient:
                 if attempt < self.MAX_RETRIES - 1:
                     delay = (
                         self.RETRY_BACKOFF[attempt]
-                        + random.uniform(0, self.JITTER_MAX)
+                        + random.uniform(0, self.JITTER_MAX)  # noqa: S311
                     )
                     _log(
                         "warning", "retry_rate_limit",
@@ -515,7 +523,7 @@ class GitHubClient:
                 if status in (429, 503) and attempt < self.MAX_RETRIES - 1:
                     delay = (
                         self.RETRY_BACKOFF[attempt]
-                        + random.uniform(0, self.JITTER_MAX)
+                        + random.uniform(0, self.JITTER_MAX)  # noqa: S311
                     )
                     _log(
                         "warning", "retry_server_error",

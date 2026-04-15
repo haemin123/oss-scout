@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -27,7 +28,7 @@ class BaseAgent(ABC):
         ...
 
     @abstractmethod
-    async def analyze(self, repo_data: dict) -> AgentResult:
+    async def analyze(self, repo_data: dict[str, Any]) -> AgentResult:
         """Run analysis on repo_data and return results.
 
         Args:
